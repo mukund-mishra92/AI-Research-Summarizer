@@ -1,5 +1,24 @@
-transformers
-feedparser
-langchain
-openai
-faiss-cpu
+# Core AI and ML
+transformers>=4.57.1
+torch>=2.0.0
+faiss-cpu>=1.12.0
+
+# Web and API
+streamlit>=1.24.0
+feedparser>=6.0.12
+requests>=2.32.5
+
+# Database and Storage
+sqlalchemy>=2.0.44
+python-dotenv>=1.0.0
+
+# Scheduling and Background Tasks
+apscheduler>=3.10.1
+
+# Email and Notifications
+python-telegram-bot>=20.0
+
+# Utilities
+tqdm>=4.67.1
+pyyaml>=6.0.3
+numpy>=2.0.2
