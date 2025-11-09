@@ -1,35 +1,50 @@
 import streamlit as st
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from storage.database import get_recent_articles
 from notify.email_notifier import send_email_summary
+from agent.rag_chain import build_qa_agent
 
-st.set_page_config(page_title="🧠 AI Daily Research Digest", layout="wide")
-st.title("📰 Daily AI News Summary")
+# --- UI Configuration ---
+st.set_page_config(page_title="🧠 AI Research Summarizer", layout="wide")
+st.title("🧠 Balmukund's Research Assistant Dashboard")
 
-# Fetch recent articles from DB
-articles = get_recent_articles(limit=10)
+# --- Sidebar Settings ---
+st.sidebar.header("⚙️ Settings")
+summary_limit = st.sidebar.selectbox("Number of articles to display", [5, 10, 20, 50], index=1)
+digest_type = st.sidebar.radio("Digest Type", ["Daily", "Weekly"])
+st.sidebar.markdown("---")
+custom_email = st.sidebar.text_input("Customer Email")
+send_email_btn = st.sidebar.button("📧 Send Summary to Customer")
+
+# --- Article Display ---
+st.subheader(f"📘 {digest_type} Digest – Latest {summary_limit} Articles")
+articles = get_recent_articles(limit=summary_limit)
 
 if not articles:
-    st.warning("No articles found. Please run the fetch script first.")
+    st.warning("No articles available. Please run the fetcher script first.")
 else:
-    selected_articles = []
     for art in articles:
-        with st.expander(f"📘 {art['title']} ({art['source']})"):
-            st.write(f"🕒 Date: {art['published']}")
-            st.write(f"📝 Summary:\n{art['summary']}")
-            if st.checkbox(f"✉️ Send this to customers", key=art["id"]):
-                selected_articles.append(art)
+        with st.expander(f"{art['title']} ({art['published']})"):
+            st.write(f"📝 **Summary**:\n\n{art['summary']}")
+            st.caption(f"🗞 Source: {art['source']}")
 
-    # Email block
-    st.markdown("---")
-    st.subheader("📧 Email Summary")
-    email = st.text_input("Customer Email Address")
-    if st.button("🚀 Send Email Summary"):
-        if email and selected_articles:
-            body = "\n\n".join([f"{a['title']}:\n{a['summary']}" for a in selected_articles])
-            send_email_summary(email, "Your Daily AI Research Summary", body)
-            st.success("✅ Email sent successfully!")
-        else:
-            st.error("Please select articles and enter an email address.")
+    # Email sending
+    if send_email_btn and custom_email:
+        body = "\n\n".join([f"{a['title']}\n{a['summary']}" for a in articles])
+        send_email_summary(
+            to_email=custom_email,
+            subject=f"{digest_type} AI Research Digest",
+            body=body
+        )
+        st.success(f"📨 Summary sent to {custom_email}")
+
+# --- RAG Q&A Section ---
+st.markdown("---")
+st.subheader("💬 Ask a Question about Recent Research (RAG)")
+user_query = st.text_input("Type your question here (e.g., What's new in LLMs?)")
+
+if user_query:
+    with st.spinner("Thinking..."):
+        qa_agent = build_qa_agent()
+        answer = qa_agent.run(user_query)
+        st.success("✅ Answer:")
+        st.write(answer)
